@@ -1,0 +1,18 @@
+{
+    "data-share": {
+        "shares": [
+            {
+                "name": "antigravity.harness",
+                "permission": {
+                    "rw": [
+                        "antigravity.harness"
+                    ]
+                }
+            }
+        ]
+    },
+    "api-scope": [
+        "trim.file.sharedAccess",
+        "trim.file.userAccess"
+    ]
+}

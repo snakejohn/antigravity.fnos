@@ -1,0 +1,15 @@
+services:
+  antigravity-harness:
+    image: debian:bookworm-slim
+    container_name: antigravity-harness
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      - DATA_LIBRARY_PATH=/data
+      - AGY_ADMIN_PORT=2399
+      - TRIM_APPVER=1.0.0
+    volumes:
+      - ./fnpack/app/bin/antigravity.harness:/usr/local/bin/antigravity.harness:ro
+      - /vol3/@appdata/antigravity.harness:/data
+      - /vol1:/vol1
+    command: ["/usr/local/bin/antigravity.harness"]

@@ -1,0 +1,22 @@
+# Secrets & runtime data
+.env
+*.env
+agy-data/
+.smoke_test_data/
+account_pool.json
+config.json
+
+# Build artifacts & binaries
+*.exe
+*.fpk
+fnpack/app/bin/
+fnpack/fnpack.exe
+frontend/dist/
+frontend/node_modules/
+
+# OS & editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.log

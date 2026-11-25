@@ -1,0 +1,19 @@
+[Unit]
+Description=Antigravity Harness Management Console for fnOS
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+Environment=DATA_LIBRARY_PATH=/vol3/@appdata/antigravity.harness
+Environment=AGY_ADMIN_PORT=2399
+Environment=TRIM_APPVER=1.0.0
+Environment=PATH=/var/apps/nodejs_v24/target/bin:/var/apps/nodejs_v22/target/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+ExecStart=/vol3/@appcenter/antigravity.harness/bin/antigravity.harness
+Restart=always
+RestartSec=3
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

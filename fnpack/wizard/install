@@ -1,0 +1,51 @@
+[
+    {
+        "stepTitle": "存储与运行配置",
+        "items": [
+            {
+                "type": "radio",
+                "field": "wizard_data_library_type",
+                "label": "Antigravity 数据存储位置",
+                "initValue": "data",
+                "options": [
+                    {
+                        "label": "数据目录 (Data)",
+                        "value": "data"
+                    },
+                    {
+                        "label": "共享目录 (Share)",
+                        "value": "share"
+                    }
+                ],
+                "rules": [
+                    {
+                        "required": true,
+                        "message": "请选择存储位置"
+                    }
+                ]
+            },
+            {
+                "type": "radio",
+                "field": "wizard_agy_run_user",
+                "label": "运行权限",
+                "initValue": "root",
+                "options": [
+                    {
+                        "label": "超级管理员 (Root)",
+                        "value": "root"
+                    },
+                    {
+                        "label": "普通用户 (Package)",
+                        "value": "antigravity.harness"
+                    }
+                ],
+                "rules": [
+                    {
+                        "required": true,
+                        "message": "请选择运行权限"
+                    }
+                ]
+            }
+        ]
+    }
+]

@@ -1,0 +1,29 @@
+{
+  "name": "antigravity-harness-frontend",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@formkit/auto-animate": "^0.8.2",
+    "@trimjs/web-app": "^0.5.0",
+    "@vicons/tabler": "^0.13.0",
+    "highlight.js": "^11.11.1",
+    "naive-ui": "^2.41.0",
+    "pinia": "^3.0.2",
+    "vue": "^3.5.13"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.2.3",
+    "autoprefixer": "^10.4.21",
+    "postcss": "^8.5.3",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5.7.3",
+    "vite": "^6.2.6",
+    "vue-tsc": "^2.2.8"
+  }
+}

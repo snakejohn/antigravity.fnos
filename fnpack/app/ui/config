@@ -1,0 +1,30 @@
+{
+    ".url": {
+        "antigravity.harness.Application": {
+            "title": "Antigravity Admin",
+            "icon": "images/icon_{0}.png",
+            "type": "iframe",
+            "protocol": "http",
+            "gatewaySocket": "web.sock",
+            "gatewayPrefix": "/app/antigravity-harness",
+            "url": "/app/antigravity-harness/",
+            "allUsers": false,
+            "control": {
+                "accessPerm": "readonly",
+                "fullUrlPerm": "readonly",
+                "portPerm": "readonly",
+                "pathPerm": "readonly"
+            }
+        },
+        "antigravity.harness.WebUI": {
+            "title": "Antigravity Gateway",
+            "icon": "images/icon_{0}.png",
+            "type": "iframe",
+            "protocol": "http",
+            "gatewaySocket": "web.sock",
+            "gatewayPrefix": "/app/antigravity-harness",
+            "url": "/app/antigravity-harness/fngateway/",
+            "allUsers": false
+        }
+    }
+}

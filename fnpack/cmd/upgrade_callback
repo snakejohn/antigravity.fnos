@@ -1,0 +1,3 @@
+#!/bin/bash
+rm -f "${TRIM_APPDEST}/web.sock"
+exit 0

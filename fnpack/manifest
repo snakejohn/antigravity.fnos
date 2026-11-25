@@ -1,0 +1,13 @@
+appname               = antigravity.harness
+version               = 1.0.0
+display_name          = Antigravity Harness
+desc                  = Google Antigravity (AGY) Harness 飞牛 NAS 专属管理控制台，支持服务启停、健康巡检、五大定制系统 (Skills/MCP/Plugins/Rules/Hooks) 可视化编辑、会话与任务派发、在线命令终端、多账号池、快照备份与实时日志。
+platform              = x86
+source                = thirdparty
+install_dep_apps      = nodejs_v24
+maintainer            = antigravity.harness
+distributor           = antigravity.harness
+distributor_url       = https://antigravity.google
+desktop_uidir         = ui
+desktop_applaunchname = antigravity.harness.Application
+micro_app             = true

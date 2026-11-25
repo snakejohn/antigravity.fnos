@@ -1,0 +1,12 @@
+#!/bin/bash
+LOG_FILE="${TRIM_PKGVAR}/info.log"
+LIB_TYPE="${wizard_data_library_type:-data}"
+if [ "${LIB_TYPE}" = "data" ]; then
+    DATA_LIBRARY_PATH="${TRIM_PKGVAR}"
+else
+    DATA_LIBRARY_PATH="${TRIM_DATA_SHARE_PATHS%%:*}"
+fi
+mkdir -p "${DATA_LIBRARY_PATH}/data" "${DATA_LIBRARY_PATH}/snapshots" "${DATA_LIBRARY_PATH}/gemini-home/config"
+rm -f "${TRIM_APPDEST}/web.sock"
+echo "$(date '+%Y-%m-%d %H:%M:%S') [INFO] install_callback complete (DATA=${DATA_LIBRARY_PATH})" >> "${LOG_FILE}"
+exit 0
