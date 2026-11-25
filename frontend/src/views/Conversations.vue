@@ -126,8 +126,8 @@
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <div class="text-xs text-slate-500 mb-1">模型档位</div>
-            <n-select v-model:value="createForm.model" :options="modelOptions" />
+            <div class="text-xs text-slate-500 mb-1">模型档位 (支持自定义输入)</div>
+            <n-select v-model:value="createForm.model" :options="MODEL_OPTIONS" filterable tag />
           </div>
           <div>
             <div class="text-xs text-slate-500 mb-1">绑定工作区</div>
@@ -158,6 +158,7 @@ import {
 import { Refresh, Plus, Star, Pin, Trash, Send } from '@vicons/tabler'
 import { conversationsApi } from '../api'
 import { useAppStore } from '../stores/app'
+import { DEFAULT_MODEL, MODEL_OPTIONS } from '../constants/models'
 import type { ConversationMeta, ConversationDetail, TranscriptEntry } from '../types/api'
 
 const appStore = useAppStore()
@@ -173,16 +174,10 @@ const creating = ref(false)
 
 const createForm = ref({
   title: '',
-  model: 'gemini-2.5-pro',
+  model: DEFAULT_MODEL,
   workspace: '',
   prompt: ''
 })
-
-const modelOptions = [
-  { label: 'Gemini 2.5 Pro (pro)', value: 'gemini-2.5-pro' },
-  { label: 'Gemini 2.5 Flash (flash)', value: 'gemini-2.5-flash' },
-  { label: 'Gemini 2.5 Flash-Lite (flash_lite)', value: 'gemini-2.5-flash-lite' }
-]
 
 const workspaceOptions = computed(() =>
   appStore.workspaces.map((w) => ({ label: `${w.title} (${w.path})`, value: w.path }))
@@ -259,7 +254,7 @@ async function submitCreate() {
   if (res.success && res.data) {
     message.success('任务已创建并派发执行')
     showCreateModal.value = false
-    createForm.value = { title: '', model: 'gemini-2.5-pro', workspace: '', prompt: '' }
+    createForm.value = { title: '', model: DEFAULT_MODEL, workspace: '', prompt: '' }
     await appStore.refreshConversations()
     await selectConv(res.data.id)
   } else {

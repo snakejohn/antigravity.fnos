@@ -54,6 +54,7 @@ func Fail(c *gin.Context, status int, msg string) {
 func registerAPIGroup(api *gin.RouterGroup) {
 	api.GET("/ws", handleWS)
 	api.GET("/status", handleGetStatus)
+	api.GET("/models", handleListModels)
 	api.POST("/action", handleAction)
 	api.GET("/doctor", handleGetDoctor)
 	api.GET("/check-update", handleCheckUpdate)
@@ -91,10 +92,13 @@ func registerAPIGroup(api *gin.RouterGroup) {
 	api.PATCH("/conversations/:id", handleUpdateConversation)
 	api.DELETE("/conversations/:id", handleDeleteConversation)
 
-	// Workspaces & Web Command Runner / Terminal
+	// Workspaces, Workspace Files & Web Command Runner / Terminal
 	api.GET("/workspace/list", handleGetWorkspaces)
 	api.POST("/workspace/add", handleAddWorkspace)
 	api.DELETE("/workspace/:id", handleDeleteWorkspace)
+	api.GET("/workspaces/files", handleListWorkspaceFiles)
+	api.GET("/workspaces/file", handleReadWorkspaceFile)
+	api.POST("/workspaces/file", handleWriteWorkspaceFile)
 	api.POST("/terminal/exec", handleTerminalExec)
 
 	// Account Pool & .env Environment Variables
@@ -128,13 +132,7 @@ func InitRoutes(r *gin.Engine) {
 	base := r.Group(basePath)
 	registerAPIGroup(base.Group("/api"))
 
-	// Reverse proxy to internal Antigravity Harness runtime (/fngateway/*)
-	r.Any("/fngateway/*proxyPath", handleFnGatewayProxy)
-	r.Any("/fngateway", handleFnGatewayProxy)
-	base.Any("/fngateway/*proxyPath", handleFnGatewayProxy)
-	base.Any("/fngateway", handleFnGatewayProxy)
-
-	// Embedded Vue 3 Frontend static asset serving
+	// Embedded Vue 3 Frontend static asset serving (shared by Admin Console and /fngateway/ Workbench)
 	sub, err := fs.Sub(WebFS, "frontend/dist")
 	if err != nil {
 		LogFatal("[API] 静态前端资源装载失败: %s", err)
@@ -145,6 +143,42 @@ func InitRoutes(r *gin.Engine) {
 		c.Request.URL.Path = "/"
 		fileServer.ServeHTTP(c.Writer, c.Request)
 	}
+
+	// Antigravity Workbench WebUI (/fngateway/) + Internal RPC/Health Proxy
+	serveGatewayOrWorkbench := func(c *gin.Context) {
+		p := c.Request.URL.Path
+		// Ensure trailing slash on bare /fngateway so relative ./assets/* resolve cleanly
+		if p == "/fngateway" || p == basePath+"/fngateway" {
+			c.Redirect(http.StatusMovedPermanently, p+"/")
+			return
+		}
+		subPath := strings.TrimPrefix(p, basePath)
+		subPath = strings.TrimPrefix(subPath, "/fngateway")
+		if subPath == "" {
+			subPath = "/"
+		}
+		// Keep /health and Connect RPC endpoints proxied to internal runtime (127.0.0.1:2398)
+		if subPath == "/health" || strings.HasPrefix(subPath, "/product.v1.") {
+			handleFnGatewayProxy(c)
+			return
+		}
+		// Serve embedded frontend static assets under /fngateway/assets/*, /fngateway/favicon.svg, etc.
+		if subPath != "/" {
+			if f, err := sub.Open(strings.TrimPrefix(subPath, "/")); err == nil {
+				_ = f.Close()
+				c.Request.URL.Path = subPath
+				fileServer.ServeHTTP(c.Writer, c.Request)
+				return
+			}
+		}
+		// Render full Antigravity Workbench SPA
+		serveIndex(c)
+	}
+
+	r.Any("/fngateway/*proxyPath", serveGatewayOrWorkbench)
+	r.Any("/fngateway", serveGatewayOrWorkbench)
+	base.Any("/fngateway/*proxyPath", serveGatewayOrWorkbench)
+	base.Any("/fngateway", serveGatewayOrWorkbench)
 
 	r.GET("/", serveIndex)
 	base.GET("/", serveIndex)
@@ -245,6 +279,29 @@ func statusPayload() gin.H {
 
 func handleGetStatus(c *gin.Context) {
 	OK(c, statusPayload())
+}
+
+func handleListModels(c *gin.Context) {
+	models := []gin.H{
+		{"id": "gemini-4-neon-xhigh", "label": "Gemini 4 Neon (XHigh) - 旗舰深度思考", "group": "Gemini 4 Neon 系列"},
+		{"id": "gemini-4-neon-high", "label": "Gemini 4 Neon (High)", "group": "Gemini 4 Neon 系列"},
+		{"id": "gemini-4-neon-medium", "label": "Gemini 4 Neon (Medium)", "group": "Gemini 4 Neon 系列"},
+		{"id": "gemini-4-neon-low", "label": "Gemini 4 Neon (Low)", "group": "Gemini 4 Neon 系列"},
+		{"id": "gemini-4-hydrogen-xhigh", "label": "Gemini 4 Hydrogen (XHigh)", "group": "Gemini 4 Hydrogen / Argon / Carbon 系列"},
+		{"id": "gemini-4-hydrogen-high", "label": "Gemini 4 Hydrogen (High)", "group": "Gemini 4 Hydrogen / Argon / Carbon 系列"},
+		{"id": "gemini-4-argon-high", "label": "Gemini 4 Argon (High)", "group": "Gemini 4 Hydrogen / Argon / Carbon 系列"},
+		{"id": "gemini-4-argon-medium", "label": "Gemini 4 Argon (Medium)", "group": "Gemini 4 Hydrogen / Argon / Carbon 系列"},
+		{"id": "gemini-4-carbon-high", "label": "Gemini 4 Carbon (High)", "group": "Gemini 4 Hydrogen / Argon / Carbon 系列"},
+		{"id": "gemini-3.8-flash-high", "label": "Gemini 3.8 Flash (High) - 极速响应", "group": "Gemini 3.8 Flash & Antigravity 编排模型"},
+		{"id": "gemini-3.8-flash-medium", "label": "Gemini 3.8 Flash (Medium)", "group": "Gemini 3.8 Flash & Antigravity 编排模型"},
+		{"id": "gemini-pro-orchestrator-neon", "label": "Orchestrator (Neon)", "group": "Gemini 3.8 Flash & Antigravity 编排模型"},
+		{"id": "claude-opus-5-5-high", "label": "Claude Opus 5.5 (High)", "group": "Gemini 3.8 Flash & Antigravity 编排模型"},
+		{"id": "claude-sonnet-5-5-high", "label": "Claude Sonnet 5.5 (High)", "group": "Gemini 3.8 Flash & Antigravity 编排模型"},
+		{"id": "gemini-2.5-pro", "label": "Gemini 2.5 Pro (Legacy)", "group": "经典兼容模型"},
+		{"id": "gemini-2.5-flash", "label": "Gemini 2.5 Flash (Legacy)", "group": "经典兼容模型"},
+		{"id": "gemini-2.5-flash-lite", "label": "Gemini 2.5 Flash-Lite (Legacy)", "group": "经典兼容模型"},
+	}
+	OK(c, gin.H{"default_model": GetConfig().GetDefaultModel(), "items": models})
 }
 
 // =========================================================================
@@ -761,6 +818,41 @@ func handleTerminalExec(c *gin.Context) {
 	}
 	res := ExecuteTerminalCommand(req)
 	OK(c, res)
+}
+
+func handleListWorkspaceFiles(c *gin.Context) {
+	res, err := ListWorkspaceFiles(c.Query("path"))
+	if err != nil {
+		Fail(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	OK(c, res)
+}
+
+func handleReadWorkspaceFile(c *gin.Context) {
+	res, err := ReadWorkspaceFile(c.Query("path"))
+	if err != nil {
+		Fail(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	OK(c, res)
+}
+
+func handleWriteWorkspaceFile(c *gin.Context) {
+	var req struct {
+		Path    string `json:"path"`
+		Content string `json:"content"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		Fail(c, http.StatusBadRequest, "参数错误")
+		return
+	}
+	res, err := WriteWorkspaceFile(req.Path, req.Content)
+	if err != nil {
+		Fail(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	OKMsg(c, "文件已保存", res)
 }
 
 // =========================================================================

@@ -15,8 +15,8 @@
       <n-card title="Antigravity 模型与沙箱策略" :bordered="false" class="shadow-sm rounded-2xl">
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
-            <div class="text-xs font-medium text-slate-600 dark:text-slate-300 mb-1.5">默认模型档位</div>
-            <n-select v-model:value="form.default_model" :options="modelOptions" />
+            <div class="text-xs font-medium text-slate-600 dark:text-slate-300 mb-1.5">默认模型档位 (支持自由输入自定义 ID)</div>
+            <n-select v-model:value="form.default_model" :options="MODEL_OPTIONS" filterable tag placeholder="选择或输入模型 ID" />
           </div>
           <div>
             <div class="text-xs font-medium text-slate-600 dark:text-slate-300 mb-1.5">终端沙箱策略 (Sandbox)</div>
@@ -105,6 +105,7 @@ import { ref, onMounted } from 'vue'
 import { NCard, NButton, NSelect, NInput, NInputNumber, NSwitch, NPopconfirm, useMessage } from 'naive-ui'
 import { configApi } from '../api'
 import { useSystemStore } from '../stores/system'
+import { DEFAULT_MODEL, MODEL_OPTIONS } from '../constants/models'
 import type { AppConfig } from '../types/api'
 
 const message = useMessage()
@@ -114,7 +115,7 @@ const saving = ref(false)
 const form = ref<AppConfig>({
   server_port: 2398,
   proxy_port: 2399,
-  default_model: 'gemini-2.5-pro',
+  default_model: DEFAULT_MODEL,
   sandbox_mode: 'workspace-write',
   approval_policy: 'on-request',
   network_proxy: '',
@@ -125,12 +126,6 @@ const form = ref<AppConfig>({
   access_mode: 'fngateway',
   access_password: ''
 })
-
-const modelOptions = [
-  { label: 'Gemini 2.5 Pro (最强推理)', value: 'gemini-2.5-pro' },
-  { label: 'Gemini 2.5 Flash (均衡高速)', value: 'gemini-2.5-flash' },
-  { label: 'Gemini 2.5 Flash-Lite (轻量低延迟)', value: 'gemini-2.5-flash-lite' }
-]
 
 const sandboxOptions = [
   { label: 'workspace-write (推荐：仅工作区可写)', value: 'workspace-write' },

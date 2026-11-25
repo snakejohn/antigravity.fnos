@@ -5,7 +5,11 @@
       <n-dialog-provider>
         <n-notification-provider>
           <n-message-provider>
-            <n-layout has-sider position="absolute" class="h-screen w-screen bg-[#f5f7fa] dark:bg-[#12141a]">
+            <!-- 全屏 Antigravity 2.0 工作窗口模式 (/fngateway/ 或 ?mode=workbench) -->
+            <WorkbenchView v-if="isWorkbenchMode" :theme-mode="themeMode" @toggle-theme="toggleTheme" />
+
+            <!-- 管理控制台模式 (Admin Console) -->
+            <n-layout v-else has-sider position="absolute" class="h-screen w-screen bg-[#f5f7fa] dark:bg-[#12141a]">
               <!-- 桌面端左侧导航栏 -->
               <n-layout-sider bordered :width="244" :native-scrollbar="false" class="hidden sm:block select-none z-10"
                 content-style="display: flex; flex-direction: column; justify-content: space-between; height: 100%;">
@@ -13,7 +17,7 @@
                   <!-- 品牌卡片 -->
                   <div @click="openDocs"
                     class="flex items-center gap-3 px-3 py-3 rounded-2xl bg-slate-50 dark:bg-white/[0.04] border border-slate-100/80 dark:border-white/[0.06] transition-all duration-200 hover:border-slate-200 dark:hover:border-white/[0.12] hover:bg-slate-100/60 dark:hover:bg-white/[0.07] cursor-pointer group">
-                    <img src="/favicon.svg" alt="Antigravity"
+                    <img :src="'./favicon.svg'" alt="Antigravity"
                       class="w-9 h-9 rounded-xl object-contain shrink-0 transition-transform duration-200 group-hover:scale-105 shadow-xs" />
                     <div class="min-w-0 flex-1">
                       <div class="flex items-center justify-between gap-1.5">
@@ -28,6 +32,13 @@
                       </div>
                     </div>
                   </div>
+
+                  <!-- 快捷进入独立全屏工作窗口按钮 -->
+                  <n-button type="primary" secondary block size="small" @click="systemStore.openGateway"
+                    class="!h-9 rounded-xl font-medium">
+                    <template #icon><n-icon><ExternalLink /></n-icon></template>
+                    打开工作窗口 (WebUI)
+                  </n-button>
 
                   <!-- 主导航菜单 -->
                   <n-menu :value="tab" :options="menuOptions" @update:value="handleMenuSelect" />
@@ -126,9 +137,11 @@ import {
   FileText,
   Settings,
   Sun,
-  Moon
+  Moon,
+  ExternalLink
 } from '@vicons/tabler'
 import { getThemeOverrides } from './theme'
+import WorkbenchView from './views/Workbench.vue'
 import Overview from './views/Overview.vue'
 import Customizations from './views/Customizations.vue'
 import Conversations from './views/Conversations.vue'
@@ -171,6 +184,14 @@ watch(
 function toggleTheme() {
   themeMode.value = themeMode.value === 'dark' ? 'light' : 'dark'
 }
+
+const isWorkbenchMode = computed(() => {
+  if (typeof window === 'undefined') return false
+  return (
+    window.location.pathname.includes('/fngateway') ||
+    new URLSearchParams(window.location.search).get('mode') === 'workbench'
+  )
+})
 
 const currentTheme = computed(() => (themeMode.value === 'dark' ? darkTheme : null))
 const currentThemeOverrides = computed(() => getThemeOverrides(themeMode.value))
@@ -234,9 +255,9 @@ const tab = computed<TabKey>({
 })
 
 watch(
-  tab,
-  (newTab) => {
-    void trimSdk.setTitle(tabLabels[newTab] || 'Antigravity Harness')
+  [tab, isWorkbenchMode],
+  ([newTab, workbench]) => {
+    void trimSdk.setTitle(workbench ? 'Antigravity Workbench · 工作窗口' : (tabLabels[newTab] || 'Antigravity Harness'))
   },
   { immediate: true }
 )

@@ -17,6 +17,7 @@ import (
 const (
 	DefaultServerPort  = 2398
 	DefaultProxyPort   = 2399
+	DefaultModelID     = "gemini-4-neon-xhigh"
 	DefaultNpmRegistry = "https://registry.npmmirror.com"
 	DefaultPyPIIndex   = "https://pypi.tuna.tsinghua.edu.cn/simple"
 )
@@ -67,7 +68,7 @@ func (c Config) GetProxyPort() int {
 func (c Config) GetDefaultModel() string {
 	m := strings.TrimSpace(c.DefaultModel)
 	if m == "" {
-		return "gemini-2.5-pro"
+		return DefaultModelID
 	}
 	return m
 }
@@ -127,7 +128,7 @@ func InitConfig() {
 	globalConfig = Config{
 		ServerPort:          DefaultServerPort,
 		ProxyPort:           DefaultProxyPort,
-		DefaultModel:        "gemini-2.5-pro",
+		DefaultModel:        DefaultModelID,
 		SandboxMode:         "workspace-write",
 		ApprovalPolicy:      "on-request",
 		AccessMode:          "fngateway",
@@ -151,8 +152,10 @@ func InitConfig() {
 	if globalConfig.ProxyRuntimeEnabled == nil {
 		globalConfig.ProxyRuntimeEnabled = &defaultProxy
 	}
-	if globalConfig.DefaultModel == "" {
-		globalConfig.DefaultModel = "gemini-2.5-pro"
+	migratedModel := false
+	if globalConfig.DefaultModel == "" || globalConfig.DefaultModel == "gemini-2.5-pro" {
+		globalConfig.DefaultModel = DefaultModelID
+		migratedModel = true
 	}
 	if globalConfig.SandboxMode == "" {
 		globalConfig.SandboxMode = "workspace-write"
@@ -177,6 +180,9 @@ func InitConfig() {
 	}
 	globalConfig.DataLibraryPath = globalPkgVar
 	globalConfig.GeminiHome = globalGeminiHome
+	if migratedModel {
+		persistConfig()
+	}
 	syncCliSettings()
 }
 
@@ -345,7 +351,7 @@ func EnsureEnvFile() (string, error) {
 	if _, err := os.Stat(envPath); err == nil {
 		return envPath, nil
 	}
-	defaultContent := "# Antigravity Harness Environment Variables\nANTIGRAVITY_DEFAULT_MODEL=gemini-2.5-pro\n"
+	defaultContent := "# Antigravity Harness Environment Variables\nANTIGRAVITY_DEFAULT_MODEL=" + DefaultModelID + "\n"
 	if err := os.WriteFile(envPath, []byte(defaultContent), 0600); err != nil {
 		return "", err
 	}

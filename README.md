@@ -4,6 +4,14 @@
 
 ## 核心功能
 
+0. **Antigravity 2.0 全屏工作窗口 (`Antigravity WebUI` · `/fngateway/`)**
+   - 飞牛桌面独立双入口：**Antigravity Admin**（管理控制台）+ **Antigravity WebUI**（全屏三栏式 Agent 工作台），也可从管理端概览页/侧边栏一键打开。
+   - **左侧栏**：NAS 工作区快速切换、新建 Agent 会话、会话搜索、星标/置顶/删除与 WebSocket 实时状态同步。
+   - **中间主画布**：支持最新 **Gemini 4 Neon / Hydrogen / Argon / Carbon**、**Gemini 3.8 Flash**、**Orchestrator (Neon)**、**Claude 5.5** 及任意自定义模型 ID 选择器、可折叠 `Thinking` 思考过程卡片、`Tool Call / Result` 执行轨迹卡片、代码高亮 Markdown 渲染、快捷斜杠命令 (`/goal`、`/plan`、`/doctor`、`/skills`、`/compact`)。
+   - **右侧辅助面板 (Auxiliary Pane)**：
+     - **文件**：在线浏览当前工作区真实目录树，支持代码/文档预览、在线编辑保存与一键引用至对话。
+     - **终端**：在当前工作区目录直接执行 `agy doctor` 与 Shell 命令并查看输出。
+     - **Skills & MCP**：实时查看激活的定制项、Rules Token 预算，支持一键插入技能到对话与测试 MCP 连通性。
 1. **概览与服务控制 (`Overview`)**
    - 实时监控 fnOS 宿主机整机指标（CPU 负载、物理内存、存储卷磁盘空间）与 Harness 进程资源占用。
    - 一键启动 / 停止 / 重启 Antigravity Harness 运行时，支持版本部署切换与 `agy doctor` 全面环境健康巡检。

@@ -11,6 +11,8 @@ import type {
   ConversationMeta,
   ConversationDetail,
   WorkspaceItem,
+  WorkspaceFilesResponse,
+  WorkspaceFileContent,
   TerminalExecResult,
   AccountStatusResponse,
   AccountProfile,
@@ -88,6 +90,12 @@ export const workspaceApi = {
   list: () => http.get<{ items: WorkspaceItem[] }>('workspace/list'),
   add: (title: string, path: string) => http.post<WorkspaceItem>('workspace/add', { title, path }),
   remove: (id: string) => http.delete(`workspace/${encodeURIComponent(id)}`),
+  listFiles: (path?: string) =>
+    http.get<WorkspaceFilesResponse>(`workspaces/files${path ? `?path=${encodeURIComponent(path)}` : ''}`),
+  readFile: (path: string) =>
+    http.get<WorkspaceFileContent>(`workspaces/file?path=${encodeURIComponent(path)}`),
+  writeFile: (path: string, content: string) =>
+    http.post<WorkspaceFileContent>('workspaces/file', { path, content }),
   execTerminal: (command: string, cwd?: string, timeout_sec = 30) =>
     http.post<TerminalExecResult>('terminal/exec', { command, cwd, timeout_sec }, { timeout: 125000 })
 }

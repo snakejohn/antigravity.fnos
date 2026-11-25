@@ -17,7 +17,7 @@
             }
         },
         "antigravity.harness.WebUI": {
-            "title": "Antigravity Gateway",
+            "title": "Antigravity WebUI",
             "icon": "images/icon_{0}.png",
             "type": "iframe",
             "protocol": "http",

@@ -446,7 +446,7 @@ func RunDoctorDiagnostics() DoctorReport {
 			Name:    "模型 API 授权凭据",
 			Status:  "warn",
 			Detail:  "尚未配置 Google Gemini / Vertex AI API Key（当前使用本地诊断引擎模式）",
-			Suggest: "前往「授权管理」添加 Gemini API Key 以启用云端 Gemini 2.5 Pro/Flash 推理",
+			Suggest: "前往「授权管理」添加 Gemini API Key 以启用云端 Gemini 4 Neon / Hydrogen / Flash 推理",
 		})
 	}
 

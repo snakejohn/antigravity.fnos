@@ -6,7 +6,7 @@
       <div class="flex items-center gap-2.5">
         <h1 class="text-xl font-bold text-slate-800 dark:text-slate-100 tracking-tight">概览</h1>
         <n-tag size="small" round :bordered="false" type="info" class="font-mono text-xs">
-          {{ statusData.default_model || 'gemini-2.5-pro' }}
+          {{ statusData.default_model || 'gemini-4-neon-xhigh' }}
         </n-tag>
       </div>
       <span v-if="statusData.build_time" class="text-xs font-mono text-slate-400 dark:text-slate-500">
@@ -43,10 +43,10 @@
               <template #icon><n-icon><MessageCircle /></n-icon></template>
               发起 Agent 任务
             </n-button>
-            <n-button type="primary" size="medium" :disabled="!isRunning" @click="systemStore.openGateway"
+            <n-button type="primary" size="medium" @click="systemStore.openGateway"
               class="!h-10 px-5 shadow-sm shadow-fnos-blue/20 font-medium rounded-xl">
               <template #icon><n-icon><ExternalLink /></n-icon></template>
-              进入 Gateway
+              进入工作窗口
             </n-button>
           </div>
         </div>

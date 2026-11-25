@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import type { StatusData, HostMetrics } from '../types/api'
 import { systemApi } from '../api'
 import { trimSdk } from '../utils/trimSdk'
+import { DEFAULT_MODEL } from '../constants/models'
 
 export const useSystemStore = defineStore('system', () => {
   const statusData = ref<StatusData>({
@@ -14,7 +15,7 @@ export const useSystemStore = defineStore('system', () => {
     started_at: 0,
     server_port: 2398,
     proxy_port: 2399,
-    default_model: 'gemini-2.5-pro',
+    default_model: DEFAULT_MODEL,
     sandbox_mode: 'workspace-write',
     approval_policy: 'on-request',
     cpu: '-',

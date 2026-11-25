@@ -211,6 +211,32 @@ export interface WorkspaceItem {
   updatedAt: number
 }
 
+export interface WorkspaceFileEntry {
+  name: string
+  path: string
+  rel_path: string
+  is_dir: boolean
+  size: number
+  mod_time: number
+  ext: string
+}
+
+export interface WorkspaceFilesResponse {
+  cwd: string
+  parent: string
+  entries: WorkspaceFileEntry[]
+}
+
+export interface WorkspaceFileContent {
+  path: string
+  name: string
+  ext: string
+  size: number
+  mod_time: number
+  is_binary: boolean
+  content: string
+}
+
 export interface TerminalExecResult {
   command: string
   cwd: string

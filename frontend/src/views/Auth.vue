@@ -122,11 +122,17 @@
       <div class="space-y-3">
         <div>
           <div class="text-xs text-slate-500 mb-1">凭据别名</div>
-          <n-input v-model:value="accForm.name" placeholder="例如：主账号 Gemini 2.5 Pro" />
+          <n-input v-model:value="accForm.name" placeholder="例如：主账号 Gemini 4 Neon" />
         </div>
-        <div>
-          <div class="text-xs text-slate-500 mb-1">服务提供商</div>
-          <n-select v-model:value="accForm.provider" :options="providerOptions" />
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <div class="text-xs text-slate-500 mb-1">服务提供商</div>
+            <n-select v-model:value="accForm.provider" :options="providerOptions" />
+          </div>
+          <div>
+            <div class="text-xs text-slate-500 mb-1">默认首选模型</div>
+            <n-select v-model:value="accForm.default_model" :options="MODEL_OPTIONS" filterable tag />
+          </div>
         </div>
         <div>
           <div class="text-xs text-slate-500 mb-1">API Key</div>
@@ -156,6 +162,7 @@ import { ref, onMounted } from 'vue'
 import { NCard, NButton, NTag, NIcon, NInput, NSelect, NModal, NPopconfirm, useMessage } from 'naive-ui'
 import { Key, Plus, Trash, Refresh } from '@vicons/tabler'
 import { authApi } from '../api'
+import { DEFAULT_MODEL, MODEL_OPTIONS } from '../constants/models'
 import type { AccountStatusResponse, AccountProfile, EnvVarItem } from '../types/api'
 
 const message = useMessage()
@@ -183,7 +190,8 @@ const accForm = ref({
   provider: 'gemini_api',
   api_key: '',
   base_url: '',
-  project_id: ''
+  project_id: '',
+  default_model: DEFAULT_MODEL
 })
 
 const providerOptions = [
@@ -217,7 +225,7 @@ async function refreshAll() {
 }
 
 function openAddAccountModal() {
-  accForm.value = { name: '', provider: 'gemini_api', api_key: '', base_url: '', project_id: '' }
+  accForm.value = { name: '', provider: 'gemini_api', api_key: '', base_url: '', project_id: '', default_model: DEFAULT_MODEL }
   showAddModal.value = true
 }
 

@@ -357,3 +357,210 @@ func ExecuteTerminalCommand(req TerminalExecRequest) TerminalExecResult {
 	}
 	return res
 }
+
+// =========================================================================
+// Workspace File Tree & File Read/Write Engine (for Workbench Auxiliary Pane)
+// =========================================================================
+
+type WorkspaceFileEntry struct {
+	Name    string `json:"name"`
+	Path    string `json:"path"`
+	RelPath string `json:"rel_path"`
+	IsDir   bool   `json:"is_dir"`
+	Size    int64  `json:"size"`
+	ModTime int64  `json:"mod_time"`
+	Ext     string `json:"ext"`
+}
+
+type WorkspaceFilesResponse struct {
+	Cwd     string               `json:"cwd"`
+	Parent  string               `json:"parent"`
+	Entries []WorkspaceFileEntry `json:"entries"`
+}
+
+type WorkspaceFileContent struct {
+	Path     string `json:"path"`
+	Name     string `json:"name"`
+	Ext      string `json:"ext"`
+	Size     int64  `json:"size"`
+	ModTime  int64  `json:"mod_time"`
+	IsBinary bool   `json:"is_binary"`
+	Content  string `json:"content"`
+}
+
+func isPathWithinAllowedRoots(target string) bool {
+	absTarget, err := filepath.Abs(filepath.Clean(target))
+	if err != nil {
+		return false
+	}
+	roots := []string{globalPkgVar, globalGeminiHome}
+	for _, w := range loadWorkspacesRaw() {
+		if w.Path != "" {
+			roots = append(roots, w.Path)
+		}
+	}
+	if runtime.GOOS != "windows" {
+		roots = append(roots, "/vol1", "/vol2", "/vol3")
+	}
+	for _, r := range roots {
+		absRoot, err := filepath.Abs(filepath.Clean(r))
+		if err != nil {
+			continue
+		}
+		if absTarget == absRoot {
+			return true
+		}
+		prefix := absRoot
+		if !strings.HasSuffix(prefix, string(filepath.Separator)) {
+			prefix += string(filepath.Separator)
+		}
+		if strings.HasPrefix(absTarget, prefix) {
+			return true
+		}
+	}
+	return false
+}
+
+func ListWorkspaceFiles(dirPath string) (WorkspaceFilesResponse, error) {
+	dirPath = strings.TrimSpace(dirPath)
+	if dirPath == "" {
+		wsList := GetWorkspaceList()
+		if len(wsList) > 0 && wsList[0].Path != "" {
+			dirPath = wsList[0].Path
+		} else {
+			dirPath = globalPkgVar
+		}
+	}
+	absDir, err := filepath.Abs(filepath.Clean(dirPath))
+	if err != nil {
+		return WorkspaceFilesResponse{}, fmt.Errorf("无效目录路径")
+	}
+	if !isPathWithinAllowedRoots(absDir) {
+		return WorkspaceFilesResponse{}, fmt.Errorf("安全限制：仅允许访问已绑定工作区或 NAS 数据卷目录")
+	}
+	st, err := os.Stat(absDir)
+	if err != nil || !st.IsDir() {
+		return WorkspaceFilesResponse{}, fmt.Errorf("目录不存在或不可访问: %s", absDir)
+	}
+	rawEntries, err := os.ReadDir(absDir)
+	if err != nil {
+		return WorkspaceFilesResponse{}, err
+	}
+	entries := make([]WorkspaceFileEntry, 0, len(rawEntries))
+	for _, e := range rawEntries {
+		info, err := e.Info()
+		if err != nil {
+			continue
+		}
+		fullPath := filepath.Join(absDir, e.Name())
+		ext := ""
+		if !e.IsDir() {
+			ext = strings.TrimPrefix(strings.ToLower(filepath.Ext(e.Name())), ".")
+		}
+		entries = append(entries, WorkspaceFileEntry{
+			Name:    e.Name(),
+			Path:    fullPath,
+			RelPath: e.Name(),
+			IsDir:   e.IsDir(),
+			Size:    info.Size(),
+			ModTime: info.ModTime().Unix(),
+			Ext:     ext,
+		})
+	}
+	// Sort directories first, then case-insensitive name
+	for i := 0; i < len(entries); i++ {
+		for j := i + 1; j < len(entries); j++ {
+			swap := false
+			if entries[i].IsDir != entries[j].IsDir {
+				swap = !entries[i].IsDir && entries[j].IsDir
+			} else {
+				swap = strings.ToLower(entries[i].Name) > strings.ToLower(entries[j].Name)
+			}
+			if swap {
+				entries[i], entries[j] = entries[j], entries[i]
+			}
+		}
+	}
+	parent := filepath.Dir(absDir)
+	if parent == absDir || !isPathWithinAllowedRoots(parent) {
+		parent = ""
+	}
+	return WorkspaceFilesResponse{
+		Cwd:     absDir,
+		Parent:  parent,
+		Entries: entries,
+	}, nil
+}
+
+func ReadWorkspaceFile(filePath string) (WorkspaceFileContent, error) {
+	filePath = strings.TrimSpace(filePath)
+	if filePath == "" {
+		return WorkspaceFileContent{}, fmt.Errorf("文件路径不能为空")
+	}
+	absPath, err := filepath.Abs(filepath.Clean(filePath))
+	if err != nil {
+		return WorkspaceFileContent{}, fmt.Errorf("无效文件路径")
+	}
+	if !isPathWithinAllowedRoots(absPath) {
+		return WorkspaceFileContent{}, fmt.Errorf("安全限制：仅允许读取已绑定工作区或 NAS 数据卷中的文件")
+	}
+	st, err := os.Stat(absPath)
+	if err != nil {
+		return WorkspaceFileContent{}, fmt.Errorf("文件不存在: %s", absPath)
+	}
+	if st.IsDir() {
+		return WorkspaceFileContent{}, fmt.Errorf("目标路径是目录而非文件")
+	}
+	const maxReadBytes = 512 * 1024
+	if st.Size() > maxReadBytes {
+		return WorkspaceFileContent{
+			Path:     absPath,
+			Name:     filepath.Base(absPath),
+			Ext:      strings.TrimPrefix(strings.ToLower(filepath.Ext(absPath)), "."),
+			Size:     st.Size(),
+			ModTime:  st.ModTime().Unix(),
+			IsBinary: true,
+			Content:  fmt.Sprintf("文件过大 (%.1f KB)，超过在线编辑器 512 KB 预览上限。", float64(st.Size())/1024.0),
+		}, nil
+	}
+	raw, err := os.ReadFile(absPath)
+	if err != nil {
+		return WorkspaceFileContent{}, err
+	}
+	isBin := bytes.IndexByte(raw, 0) >= 0
+	content := string(raw)
+	if isBin {
+		content = fmt.Sprintf("检测到二进制文件 (%d 字节)，暂不支持纯文本预览。", len(raw))
+	}
+	return WorkspaceFileContent{
+		Path:     absPath,
+		Name:     filepath.Base(absPath),
+		Ext:      strings.TrimPrefix(strings.ToLower(filepath.Ext(absPath)), "."),
+		Size:     st.Size(),
+		ModTime:  st.ModTime().Unix(),
+		IsBinary: isBin,
+		Content:  content,
+	}, nil
+}
+
+func WriteWorkspaceFile(filePath, content string) (WorkspaceFileContent, error) {
+	filePath = strings.TrimSpace(filePath)
+	if filePath == "" {
+		return WorkspaceFileContent{}, fmt.Errorf("文件路径不能为空")
+	}
+	absPath, err := filepath.Abs(filepath.Clean(filePath))
+	if err != nil {
+		return WorkspaceFileContent{}, fmt.Errorf("无效文件路径")
+	}
+	if !isPathWithinAllowedRoots(absPath) {
+		return WorkspaceFileContent{}, fmt.Errorf("安全限制：仅允许写入已绑定工作区或 NAS 数据卷中的文件")
+	}
+	if err := os.MkdirAll(filepath.Dir(absPath), 0755); err != nil {
+		return WorkspaceFileContent{}, err
+	}
+	if err := os.WriteFile(absPath, []byte(content), 0644); err != nil {
+		return WorkspaceFileContent{}, err
+	}
+	LogInfo("[工作台] 已保存文件 %s (%d bytes)", absPath, len(content))
+	return ReadWorkspaceFile(absPath)
+}

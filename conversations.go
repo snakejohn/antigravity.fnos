@@ -93,7 +93,7 @@ func InitConversations() {
 		now := time.Now().Format(time.RFC3339)
 		meta := ConversationMeta{
 			ID:         id,
-			Model:      "gemini-2.5-pro",
+			Model:      DefaultModelID,
 			Workspace:  globalPkgVar,
 			CreateTime: now,
 			UpdateTime: now,
@@ -115,7 +115,7 @@ func InitConversations() {
 			{ID: "t2", Role: "thought", Content: "正在读取全局定制目录 (~/.gemini/config) 与宿主机资源指标，验证 Skills、MCP、Plugins、Rules 与 Hooks 是否初始化完毕。", Timestamp: now},
 			{ID: "t3", Role: "tool_call", ToolName: "inspect_harness_env", ToolArgs: `{"scope":"global","check_mcp":true}`, Content: "执行环境与定制系统检查", Timestamp: now},
 			{ID: "t4", Role: "tool_result", ToolName: "inspect_harness_env", Content: "定制目录就绪：Skills (2), MCP Servers (2), Plugins (1), Rules (1), Hooks (2)。ConversationService Connect RPC 已挂载。", Timestamp: now},
-			{ID: "t5", Role: "assistant", Model: "gemini-2.5-pro", Content: "Antigravity Harness 飞牛 NAS 控制台已初始化完成！\n\n- **定制中心**：已预置 `fnos-nas-ops` 与 `code-audit-guardian` 技能模板、全局 `GEMINI.md` 规则、`mcp_config.json` 与安全生命周期钩子。\n- **云端模型推理**：前往「授权管理」配置 `GEMINI_API_KEY` 后，即可在此直接驱动 Gemini 2.5 Pro / Flash 执行真实任务。\n- **本地诊断模式**：即使未配置 API Key，内置本地工作区巡检引擎也支持直接响应任务并写入 `transcript.jsonl`。", Timestamp: now},
+			{ID: "t5", Role: "assistant", Model: DefaultModelID, Content: "Antigravity Harness 飞牛 NAS 控制台已初始化完成！\n\n- **最新模型引擎**：默认已启用 **`gemini-4-neon-xhigh` (Gemini 4 Neon XHigh)**，支持 Gemini 4 Neon / Hydrogen / Argon / Carbon、Gemini 3.8 Flash、Claude 5.5 及任意自定义模型 ID。\n- **定制中心**：已预置 `fnos-nas-ops` 与 `code-audit-guardian` 技能模板、全局 `GEMINI.md` 规则、`mcp_config.json` 与安全生命周期钩子。\n- **云端模型推理**：前往「授权管理」配置 `GEMINI_API_KEY` 后，即可直接驱动最新 Gemini 4 系列执行真实任务。", Timestamp: now},
 		}
 		f, err := os.OpenFile(filepath.Join(logDir, "transcript.jsonl"), os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
 		if err == nil {
@@ -263,12 +263,12 @@ type CreateConversationRequest struct {
 
 func resolveModelName(alias string) string {
 	switch strings.ToLower(strings.TrimSpace(alias)) {
-	case "pro", "gemini-2.5-pro":
-		return "gemini-2.5-pro"
-	case "flash", "gemini-2.5-flash":
-		return "gemini-2.5-flash"
-	case "flash_lite", "gemini-2.5-flash-lite":
-		return "gemini-2.5-flash-lite"
+	case "pro", "neon", "gemini-4-pro":
+		return DefaultModelID
+	case "flash":
+		return "gemini-3.8-flash-high"
+	case "flash_lite":
+		return "gemini-3.8-flash-medium"
 	case "":
 		return GetConfig().GetDefaultModel()
 	default:
@@ -489,6 +489,90 @@ func executeAgentTurn(meta ConversationMeta, prompt string) {
 	})
 	notifyConversationsChanged()
 
+	// Built-in Antigravity Slash Commands (/doctor, /skills, /compact)
+	lowerPrompt := strings.ToLower(strings.TrimSpace(prompt))
+	if lowerPrompt == "/doctor" || strings.HasPrefix(lowerPrompt, "/doctor ") {
+		_ = appendTranscriptEntry(meta.ID, TranscriptEntry{
+			Role:     "tool_call",
+			ToolName: "run_doctor_diagnostics",
+			ToolArgs: `{"scope":"all"}`,
+			Content:  "执行 Antigravity Harness 全面健康巡检",
+		})
+		notifyConversationsChanged()
+		report := RunDoctorDiagnostics()
+		var sb strings.Builder
+		sb.WriteString(fmt.Sprintf("### Antigravity Harness 健康巡检报告 (`%s`)\n\n", report.CheckedAt))
+		for _, c := range report.Checks {
+			icon := "✅"
+			if c.Status == "warn" {
+				icon = "⚠️"
+			} else if c.Status == "error" {
+				icon = "❌"
+			}
+			sb.WriteString(fmt.Sprintf("- %s **%s**：%s\n", icon, c.Name, c.Detail))
+			if c.Suggest != "" {
+				sb.WriteString(fmt.Sprintf("  - 建议：%s\n", c.Suggest))
+			}
+		}
+		_ = appendTranscriptEntry(meta.ID, TranscriptEntry{
+			Role:     "tool_result",
+			ToolName: "run_doctor_diagnostics",
+			Content:  fmt.Sprintf("Passed: %d, Warn: %d, Error: %d", report.PassedCount, report.WarnCount, report.ErrorCount),
+		})
+		_ = appendTranscriptEntry(meta.ID, TranscriptEntry{
+			Role:    "assistant",
+			Model:   meta.Model + " (slash:/doctor)",
+			Content: sb.String(),
+		})
+		return
+	}
+
+	if lowerPrompt == "/skills" || strings.HasPrefix(lowerPrompt, "/skills ") {
+		_ = appendTranscriptEntry(meta.ID, TranscriptEntry{
+			Role:     "tool_call",
+			ToolName: "list_customizations",
+			ToolArgs: `{"types":["skills","mcp","plugins","rules"]}`,
+			Content:  "扫描已激活的 Skills、MCP Servers 与 Rules",
+		})
+		notifyConversationsChanged()
+		skills := ListAllSkills()
+		mcps, _, _ := ReadMCPConfig()
+		var sb strings.Builder
+		sb.WriteString("### 当前已加载 Antigravity 定制项\n\n#### Skills 技能\n")
+		for _, s := range skills {
+			sb.WriteString(fmt.Sprintf("- **`%s`** (`%s`)：%s\n", s.Name, s.Scope, s.Description))
+		}
+		sb.WriteString("\n#### MCP Servers\n")
+		for _, m := range mcps {
+			target := m.URL
+			if m.Transport == "stdio" {
+				target = m.Command + " " + strings.Join(m.Args, " ")
+			}
+			sb.WriteString(fmt.Sprintf("- **`%s`** (`%s`)：`%s`\n", m.ID, m.Transport, strings.TrimSpace(target)))
+		}
+		_ = appendTranscriptEntry(meta.ID, TranscriptEntry{
+			Role:     "tool_result",
+			ToolName: "list_customizations",
+			Content:  fmt.Sprintf("发现 %d 个 Skills 与 %d 个 MCP Servers", len(skills), len(mcps)),
+		})
+		_ = appendTranscriptEntry(meta.ID, TranscriptEntry{
+			Role:    "assistant",
+			Model:   meta.Model + " (slash:/skills)",
+			Content: sb.String(),
+		})
+		return
+	}
+
+	if lowerPrompt == "/compact" {
+		entries := readTranscriptEntries(meta.ID)
+		_ = appendTranscriptEntry(meta.ID, TranscriptEntry{
+			Role:    "assistant",
+			Model:   meta.Model + " (slash:/compact)",
+			Content: fmt.Sprintf("上下文窗口已压缩整理：当前会话包含 **%d 轮对话**（共 `%d` 条轨迹记录），已保留核心工作区上下文 (`%s`) 与全局规则摘要。", meta.TurnCount, len(entries), meta.Workspace),
+		})
+		return
+	}
+
 	apiKey, baseURL := resolveActiveGeminiKey()
 	if apiKey != "" {
 		_ = appendTranscriptEntry(meta.ID, TranscriptEntry{
@@ -559,7 +643,7 @@ func executeAgentTurn(meta ConversationMeta, prompt string) {
 			"- **工作区路径**：`%s`（顶层目录项 %d 个）\n"+
 			"- **已加载定制**：Skills `%d` · MCP `%d` · Plugins `%d` · Rules `%d` · Hooks `%d`\n"+
 			"- **宿主机状态**：CPU `%.1f%%` · 内存 `%.1f%%` · 磁盘 `%s` 已用 `%.1f%%`\n\n"+
-			"> 💡 提示：如需调用 Google 云端 Gemini 2.5 Pro / Flash 深度推理，请在左侧 **「授权管理」** 中配置 `GEMINI_API_KEY`（或在 `.env` 中写入）。",
+			"> 💡 提示：如需调用 Google 云端 Gemini 4 Neon / Hydrogen / Flash 深度推理，请在左侧 **「授权管理」** 中配置 `GEMINI_API_KEY`（或在 `.env` 中写入）。",
 		prompt, meta.Model, GetConfig().GetSandboxMode(), meta.Workspace, wsFiles,
 		summary.SkillsCount, summary.MCPCount, summary.PluginsCount, summary.RulesCount, summary.HooksCount,
 		host.CPUPercent, host.MemPercent, host.DiskMount, host.DiskPercent,
