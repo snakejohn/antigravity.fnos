@@ -70,11 +70,11 @@
                 <!-- 移动端底部 Tabbar -->
                 <n-layout-footer bordered position="absolute"
                   class="sm:hidden z-50 !bg-white/95 dark:!bg-[#181b22]/95 !backdrop-blur-md px-1 pt-1 shadow-lg mobile-tabbar-footer">
-                  <n-flex justify="space-around" align="center" :wrap="false" class="w-full overflow-x-auto no-scrollbar">
+                  <div class="flex items-center justify-between w-full overflow-x-auto no-scrollbar gap-0.5">
                     <n-button v-for="t in mobileTabs" :key="t.key" text :type="tab === t.key ? 'primary' : 'default'"
-                      @click="tab = t.key" class="flex-1 !py-1 !px-1">
+                      @click="tab = t.key" class="flex-1 min-w-[44px] shrink-0 !py-1 !px-0.5">
                       <div class="flex flex-col items-center gap-0.5 select-none">
-                        <n-icon :size="19">
+                        <n-icon :size="18">
                           <component :is="t.icon" />
                         </n-icon>
                         <span class="text-[10px] leading-tight whitespace-nowrap"
@@ -83,7 +83,7 @@
                         </span>
                       </div>
                     </n-button>
-                  </n-flex>
+                  </div>
                 </n-layout-footer>
               </n-layout>
             </n-layout>
@@ -109,7 +109,6 @@ import {
   NLayoutFooter,
   NMenu,
   NDivider,
-  NFlex,
   NButton,
   NBackTop,
   NIcon,
@@ -224,6 +223,7 @@ const mobileTabs = [
   { key: 'conversations' as TabKey, label: '会话', icon: MessageCircle },
   { key: 'workspace' as TabKey, label: '终端', icon: Folder },
   { key: 'auth' as TabKey, label: '授权', icon: Key },
+  { key: 'snapshots' as TabKey, label: '快照', icon: History },
   { key: 'logs' as TabKey, label: '日志', icon: FileText },
   { key: 'settings' as TabKey, label: '设置', icon: Settings }
 ]

@@ -97,15 +97,15 @@
     <!-- fnOS 宿主机系统资源监控 -->
     <n-card :bordered="false" class="shadow-sm rounded-2xl">
       <template #header>
-        <div class="flex items-center justify-between gap-2">
-          <div class="flex items-center gap-2">
-            <n-icon :size="18" class="text-fnos-blue dark:text-blue-400"><Server /></n-icon>
-            <span class="text-base font-bold text-slate-800 dark:text-slate-100">fnOS 宿主机资源</span>
-            <n-tag v-if="host" size="tiny" round :bordered="false" class="font-mono bg-slate-100 dark:bg-white/[0.08]">
+        <div class="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 min-w-0">
+          <div class="flex flex-wrap items-center gap-2 min-w-0">
+            <n-icon :size="18" class="text-fnos-blue dark:text-blue-400 shrink-0"><Server /></n-icon>
+            <span class="text-base font-bold text-slate-800 dark:text-slate-100 whitespace-nowrap shrink-0">fnOS 宿主机资源</span>
+            <n-tag v-if="host" size="tiny" round :bordered="false" class="font-mono bg-slate-100 dark:bg-white/[0.08] shrink-0">
               {{ host.hostname }} · {{ host.os }} ({{ host.arch }})
             </n-tag>
           </div>
-          <span v-if="host?.load_avg" class="text-xs font-mono text-slate-400">Load: {{ host.load_avg }}</span>
+          <span v-if="host?.load_avg" class="text-xs font-mono text-slate-400 whitespace-nowrap shrink-0">Load: {{ host.load_avg }}</span>
         </div>
       </template>
 
