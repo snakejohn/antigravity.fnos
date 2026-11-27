@@ -84,6 +84,16 @@ func notifyConversationsChanged() {
 func InitConversations() {
 	_ = os.MkdirAll(globalBrainDir, 0755)
 	entries, err := os.ReadDir(globalBrainDir)
+	if err == nil && len(entries) > 0 {
+		// Smoothly migrate seeded welcome conversation from legacy gemini-2.5-pro to Gemini 4 Neon XHigh
+		if meta, err := readConvMeta("conv_welcome_fnos"); err == nil && meta.Model == "gemini-2.5-pro" {
+			meta.Model = DefaultModelID
+			meta.UpdateTime = time.Now().Format(time.RFC3339)
+			_ = writeConvMeta(meta)
+			LogInfo("[会话] 已将默认欢迎会话 conv_welcome_fnos 模型平滑升级至 %s", DefaultModelID)
+		}
+		return
+	}
 	if err == nil && len(entries) == 0 {
 		// Seed one welcome onboarding conversation so UI showcases transcript & thought timeline immediately
 		id := "conv_welcome_fnos"
@@ -341,6 +351,10 @@ func UpdateConversationAnnotations(id string, patch map[string]any) (Conversatio
 	if v, ok := patch["title"].(string); ok {
 		meta.Annotations.Title = strings.TrimSpace(v)
 	}
+	if v, ok := patch["model"].(string); ok && strings.TrimSpace(v) != "" {
+		meta.Model = resolveModelName(v)
+		LogInfo("[会话] 会话 %s 模型切换为 %s", id, meta.Model)
+	}
 	if v, ok := patch["pinned"].(bool); ok {
 		meta.Annotations.Pinned = v
 	}
@@ -382,7 +396,7 @@ func DeleteConversation(id string) error {
 	return nil
 }
 
-func DispatchConversationPrompt(id, prompt string) error {
+func DispatchConversationPrompt(id, prompt string, modelOverride ...string) error {
 	meta, err := readConvMeta(id)
 	if err != nil {
 		return fmt.Errorf("未找到会话: %s", id)
@@ -390,6 +404,9 @@ func DispatchConversationPrompt(id, prompt string) error {
 	prompt = strings.TrimSpace(prompt)
 	if prompt == "" {
 		return fmt.Errorf("Prompt 内容不能为空")
+	}
+	if len(modelOverride) > 0 && strings.TrimSpace(modelOverride[0]) != "" {
+		meta.Model = resolveModelName(modelOverride[0])
 	}
 
 	_ = appendTranscriptEntry(id, TranscriptEntry{

@@ -79,8 +79,8 @@ export const conversationsApi = {
   create: (payload: { title?: string; model?: string; workspace?: string; tags?: string[]; prompt?: string }) =>
     http.post<ConversationMeta>('conversations', payload),
   getDetail: (id: string) => http.get<ConversationDetail>(`conversations/${encodeURIComponent(id)}`),
-  sendMessage: (id: string, prompt: string) =>
-    http.post(`conversations/${encodeURIComponent(id)}/message`, { prompt }),
+  sendMessage: (id: string, prompt: string, model?: string) =>
+    http.post(`conversations/${encodeURIComponent(id)}/message`, { prompt, ...(model ? { model } : {}) }),
   update: (id: string, patch: Record<string, unknown>) =>
     http.patch<ConversationMeta>(`conversations/${encodeURIComponent(id)}`, patch),
   remove: (id: string) => http.delete(`conversations/${encodeURIComponent(id)}`)

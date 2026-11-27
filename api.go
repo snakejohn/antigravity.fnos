@@ -743,12 +743,13 @@ func handleGetConversation(c *gin.Context) {
 func handleSendConversationMessage(c *gin.Context) {
 	var req struct {
 		Prompt string `json:"prompt"`
+		Model  string `json:"model"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil || strings.TrimSpace(req.Prompt) == "" {
 		Fail(c, http.StatusBadRequest, "请输入指令内容")
 		return
 	}
-	if err := DispatchConversationPrompt(c.Param("id"), req.Prompt); err != nil {
+	if err := DispatchConversationPrompt(c.Param("id"), req.Prompt, req.Model); err != nil {
 		Fail(c, http.StatusBadRequest, err.Error())
 		return
 	}

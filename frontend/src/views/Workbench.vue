@@ -8,7 +8,7 @@
           <template #icon><n-icon :size="18"><Menu2 /></n-icon></template>
         </n-button>
         <img :src="'./favicon.svg'" alt="Antigravity" class="w-6 h-6 rounded-lg shrink-0" />
-        <span class="font-bold text-sm tracking-tight whitespace-nowrap">Antigravity</span>
+        <span class="hidden sm:inline font-bold text-sm tracking-tight whitespace-nowrap">Antigravity</span>
         <n-tag size="tiny" round :bordered="false" type="info" class="font-mono hidden sm:inline-flex">Workbench</n-tag>
         <span class="hidden md:inline text-slate-300 dark:text-slate-700">/</span>
         <span v-if="activeDetail" class="hidden md:inline text-xs font-medium text-slate-600 dark:text-slate-300 truncate max-w-[260px]">
@@ -19,7 +19,7 @@
       <!-- 顶栏右侧控制：模型选择、沙箱状态、运行态、辅助面板、主题、返回 Admin -->
       <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
         <n-select v-model:value="selectedModel" :options="MODEL_OPTIONS" filterable tag size="tiny"
-          class="!w-[165px] sm:!w-[220px] font-mono" placeholder="选择或输入模型" />
+          class="!w-[150px] sm:!w-[220px] font-mono" placeholder="选择或输入模型" @update:value="handleModelChange" />
         <n-tag size="small" round :bordered="false" class="hidden sm:inline-flex font-mono text-[11px] bg-slate-100 dark:bg-white/[0.08]">
           {{ statusData.sandbox_mode || 'workspace-write' }}
         </n-tag>
@@ -581,6 +581,21 @@ function startFreshDraft() {
   activeConvId.value = ''
   activeDetail.value = null
   promptInput.value = ''
+  selectedModel.value = statusData.value.default_model || DEFAULT_MODEL
+}
+
+async function handleModelChange(newModel: string) {
+  selectedModel.value = newModel
+  if (!activeConvId.value) return
+  const res = await conversationsApi.update(activeConvId.value, { model: newModel })
+  if (res.success && res.data) {
+    if (activeDetail.value) {
+      activeDetail.value.model = res.data.model
+    }
+    message.success(`当前会话模型已切换为 ${res.data.model}`)
+  } else {
+    message.error(res.message || '切换模型失败')
+  }
 }
 
 async function submitPrompt() {
@@ -603,7 +618,7 @@ async function submitPrompt() {
         message.error(res.message || '创建会话失败')
       }
     } else {
-      const res = await conversationsApi.sendMessage(activeConvId.value, text)
+      const res = await conversationsApi.sendMessage(activeConvId.value, text, selectedModel.value)
       if (res.success) {
         await selectConversation(activeConvId.value)
       } else {
